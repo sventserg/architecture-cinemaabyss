@@ -1,4 +1,0 @@
-info: EventsService[0]
-      Application built successfully
-info: EventsService[0]
-      Starting application...
