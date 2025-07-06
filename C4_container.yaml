@@ -1,0 +1,89 @@
+@startuml
+title CinemaAbyss To-Be Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+AddElementTag("red", $borderColor="#d73027", $fontColor="#d73027")
+AddRelTag("async",$lineColor="red", $lineStyle = DashedLine())
+
+Person(User, "User", "Web, Mobile, TV")
+System(CinemaAbyss, "CinemaAbyss System")
+System_Ext(ExternalPayment, "External Payment System")
+System_Ext(OnlineCinemas, "Online Cinemas")
+System_Ext(ExternalRecommendation, "External Recommendation System", "RabbitMQ")
+System_Ext(ExternalMetadata, "S3")
+
+Container_Boundary(CinemaAbyss, "CinemaAbyss System") {
+
+Container(SystemGateway, "System Gateway", "Nginx", "Entry point for all users request")
+
+Container_Boundary(AutenticationService, "Autentication Service") {
+  Container(Authentication, "Autentication System", "Go", "User authentication")
+  ContainerDb(AuthenticationDatabase, "Authentication Database", "PostgreSQL", "Stores authentication data")
+  }
+    Container_Boundary(UserService, "User Management Service") {
+  Container(UserManagement, "User Management System", "Go", "Manages users")
+  ContainerDb(UserDatabase, "User Database", "PostgreSQL", "Stores user data")
+  }
+    Container_Boundary(PaymentService, "Payment Service") {
+  Container(PaymentAPI, "Payment API", "GO", "Integration with payment systems")
+  ContainerDb(PaymentDatabase, "Payment Database", "PostgreSQL", "Stores payments")
+  }
+    Container_Boundary(RecommendationService, "Recommendation Service") {
+  Container(Recommendation, "Recommendation System", "Go", "Handles user recommendations")
+  }
+  Container_Boundary(StreamingService, "Streaming Service") {
+  Container(StreamingSystem, "Streaming System", "Go", "Integration with online cinemas")
+  }
+    Container_Boundary(MoviesMetadataService, "Movies Metadata Service") {
+  Container(MoviesMetadataSystem, "Movies Metadata System", "Go", "Handles movies metadata")
+  ContainerDb(MoviesDatabase, "Movies Database", "PostgreSQL", "Stores movies metadata")
+  }
+    Container_Boundary(SubscribeService, "Subscribe Service") {
+  Container(SubscribeSystem, "Subscribe System", "GO", "Handles subscribes")
+  ContainerDb(SubscribeDatabase, "Subscribe Database", "PostgreSQL", "Stores subscribe data")
+  }
+      Container_Boundary(DiscountService, "Discount Service") {
+  Container(DiscountSystem, "Discount System", "GO", "Handles discounts")
+  ContainerDb(DiscountDatabase, "Discount Database", "PostgreSQL", "Stores discount data")
+  }
+    Container_Boundary(MessageBroker, "Message Broker") {
+  Container(Kafka, "Message Broker", "Kafka", "Broker for handling messages", $tags="red")
+  }
+}
+
+Rel_D(User, SystemGateway, "uses system")
+Rel_D(SystemGateway, Kafka, "async requests")
+Rel(SystemGateway, Authentication, "authentication request")
+Rel(SystemGateway, UserManagement, "user data requests")
+Rel(SystemGateway, MoviesMetadataSystem, "movies metadata requests")
+Rel(SystemGateway, Recommendation, "recommendation requests")
+Rel(SystemGateway, StreamingSystem, "streaming requests")
+Rel(SystemGateway, PaymentAPI, "payment requests")
+Rel(SystemGateway, SubscribeSystem, "subscribe requests")
+Rel(SystemGateway, DiscountSystem, "discount requests")
+Rel_D(PaymentAPI, ExternalPayment, "uses")
+Rel_D(StreamingSystem, OnlineCinemas, "uses")
+Rel_D(Recommendation, ExternalRecommendation, "uses")
+Rel_D(MoviesMetadataSystem, ExternalMetadata, "uses")
+
+BiRel_D(UserManagement, Kafka, "async request", $tags="async")
+BiRel_D(Authentication, Kafka, "async request", $tags="async")
+BiRel_U(PaymentAPI, Kafka, "async request", $tags="async")
+BiRel_U(Recommendation, Kafka, "async request", $tags="async")
+BiRel_U(StreamingSystem, Kafka, "async request", $tags="async")
+BiRel_U(MoviesMetadataSystem, Kafka, "async request", $tags="async")
+BiRel_D(SubscribeSystem, Kafka, "async request", $tags="async")
+BiRel_D(DiscountSystem, Kafka, "async request", $tags="async")
+
+
+Rel_U(Authentication, AuthenticationDatabase, "reads/writes data")
+Rel_U(UserManagement, UserDatabase, "reads/writes data")
+Rel_R(MoviesMetadataSystem, MoviesDatabase, "reads/writes data")
+Rel_R(PaymentAPI, PaymentDatabase, "reads/writes data")
+Rel_U(SubscribeSystem, SubscribeDatabase, "reads/writes data")
+Rel_U(DiscountSystem, DiscountDatabase, "reads/writes data")
+
+@enduml
